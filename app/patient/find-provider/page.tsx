@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LocationSharing } from "@/components/location-sharing"
 import { MapPin } from "lucide-react"
 import Link from "next/link"
+import { supabase } from "@/lib/supabase"
 
 interface ServiceType {
   id: number
@@ -39,6 +40,8 @@ export default function FindProvider() {
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [loading, setLoading] = useState(false)
   const [searchPerformed, setSearchPerformed] = useState(false)
+  const [service, setService] = useState("")
+  const [results, setResults] = useState([])
   const supabase = createClientComponentClient()
 
   useEffect(() => {
@@ -64,72 +67,19 @@ export default function FindProvider() {
   }
 
   const searchProviders = async () => {
-    if (!selectedServiceType && !latitude && !longitude && !location.trim()) {
-      return
-    }
-
     setLoading(true)
     setSearchPerformed(true)
 
     try {
-      // In a real app, you would use the coordinates to find nearby gyms
-      // For this demo, we'll fetch all doctors who provide the selected service
-
-      let query = supabase.from("doctors").select(`
-          id, 
-          name, 
-          specialization,
-          doctor_services!inner(service_type_id),
-          doctor_locations!inner(
-            gym_id,
-            gyms:gym_id(id, name, address, latitude, longitude)
-          )
-        `)
-
-      if (selectedServiceType) {
-        query = query.eq("doctor_services.service_type_id", selectedServiceType)
-      }
-
-      const { data, error } = await query
+      // Example: search by specialization and location (adjust as needed)
+      const { data, error } = await supabase
+        .from("doctors")
+        .select("id, name, specialization")
+        .ilike("specialization", `%${service}%`)
 
       if (error) throw error
 
-      // Transform the data
-      const transformedData: Doctor[] = []
-
-      data?.forEach((doctor) => {
-        doctor.doctor_locations.forEach((location: any) => {
-          const gym = location.gyms
-
-          // Calculate distance if coordinates are available
-          let distance = undefined
-          if (latitude && longitude && gym.latitude && gym.longitude) {
-            distance = calculateDistance(latitude, longitude, gym.latitude, gym.longitude)
-          }
-
-          transformedData.push({
-            id: doctor.id,
-            name: doctor.name,
-            specialization: doctor.specialization,
-            gym_id: gym.id,
-            gym_name: gym.name,
-            gym_address: gym.address,
-            distance,
-          })
-        })
-      })
-
-      // Sort by distance if available
-      if (latitude && longitude) {
-        transformedData.sort((a, b) => {
-          if (a.distance !== undefined && b.distance !== undefined) {
-            return a.distance - b.distance
-          }
-          return 0
-        })
-      }
-
-      setDoctors(transformedData)
+      setResults(data || [])
     } catch (error) {
       console.error("Error searching providers:", error)
     } finally {
@@ -172,8 +122,8 @@ export default function FindProvider() {
                   <div className="space-y-2">
                     <Label htmlFor="service-type">Service Type</Label>
                     <Select
-                      value={selectedServiceType?.toString() || ""}
-                      onValueChange={(value) => setSelectedServiceType(Number.parseInt(value))}
+                      value={service}
+                      onValueChange={(value) => setService(value)}
                     >
                       <SelectTrigger id="service-type">
                         <SelectValue placeholder="Select service type" />
@@ -229,39 +179,21 @@ export default function FindProvider() {
               <>
                 <h2 className="text-2xl font-bold mb-4">Search Results</h2>
 
-                {doctors.length > 0 ? (
+                {results.length > 0 ? (
                   <div className="grid gap-4">
-                    {doctors.map((doctor, index) => (
-                      <Card key={`${doctor.id}-${doctor.gym_id}-${index}`}>
+                    {results.map((doc) => (
+                      <Card key={doc.id} className="flex flex-col md:flex-row justify-between">
                         <CardContent className="p-6">
-                          <div className="flex flex-col md:flex-row justify-between">
-                            <div>
-                              <h3 className="text-lg font-bold">{doctor.name}</h3>
-                              <p className="text-muted-foreground">{doctor.specialization || "General Healthcare"}</p>
-
-                              <div className="flex items-center mt-4">
-                                <MapPin className="mr-2 h-4 w-4" />
-                                <span>
-                                  {doctor.gym_name} - {doctor.gym_address}
-                                </span>
-                              </div>
-
-                              {doctor.distance !== undefined && (
-                                <div className="mt-2">
-                                  <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
-                                    {doctor.distance.toFixed(1)} km away
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="mt-4 md:mt-0">
-                              <Link href={`/patient/book-appointment?doctor=${doctor.id}&gym=${doctor.gym_id}`}>
-                                <Button>Book Appointment</Button>
-                              </Link>
-                            </div>
+                          <div>
+                            <h3 className="text-lg font-bold">{doc.name}</h3>
+                            <p className="text-muted-foreground">{doc.specialization || "General Healthcare"}</p>
                           </div>
                         </CardContent>
+                        <CardFooter className="mt-4 md:mt-0">
+                          <Link href={`/patient/book-appointment?doctor=${doc.id}&service=${service}`}>
+                            <Button>Book Appointment</Button>
+                          </Link>
+                        </CardFooter>
                       </Card>
                     ))}
                   </div>

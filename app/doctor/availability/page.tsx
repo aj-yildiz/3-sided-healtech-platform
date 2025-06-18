@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PlusCircle, Trash2 } from "lucide-react"
 import Link from "next/link"
+import { Input } from "@/components/ui/input"
 
 interface Gym {
   id: number
@@ -53,6 +54,11 @@ export default function DoctorAvailability() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [selectedGym, setSelectedGym] = useState("")
+  const [date, setDate] = useState("")
+  const [startTime, setStartTime] = useState("")
+  const [endTime, setEndTime] = useState("")
+  const [availabilities, setAvailabilities] = useState([])
 
   const supabase = createClientComponentClient()
 
@@ -187,6 +193,21 @@ export default function DoctorAvailability() {
     } finally {
       setSaving(false)
     }
+  }
+
+  async function addAvailability() {
+    const supabase = createClientComponentClient()
+    const { data: sessionData } = await supabase.auth.getSession()
+    const user = sessionData.session?.user
+    if (!user) return
+    await supabase.from("doctor_availability").insert({
+      doctor_id: user.id,
+      gym_id: selectedGym,
+      available_date: date,
+      start_time: startTime,
+      end_time: endTime,
+    })
+    // Optionally refresh availabilities here
   }
 
   return (
@@ -377,6 +398,23 @@ export default function DoctorAvailability() {
                 </Button>
               </CardFooter>
             </Card>
+
+            <div className="mt-6">
+              <h2 className="text-2xl font-bold mb-4">Release Availability</h2>
+              <div className="flex gap-4 mb-4">
+                <Select value={selectedGym} onValueChange={setSelectedGym}>
+                  <SelectItem value="">Select Gym</SelectItem>
+                  {gyms.map(gym => (
+                    <SelectItem key={gym.id} value={String(gym.id)}>{gym.name}</SelectItem>
+                  ))}
+                </Select>
+                <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
+                <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} />
+                <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
+                <Button onClick={addAvailability}>Add Slot</Button>
+              </div>
+              {/* List of availabilities can be rendered here */}
+            </div>
           </div>
         </main>
       </div>
