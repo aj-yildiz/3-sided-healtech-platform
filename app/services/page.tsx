@@ -1,3 +1,4 @@
+"use client"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { MainNav } from "@/components/main-nav"
@@ -19,6 +20,14 @@ import {
   Search,
   MessageSquare,
 } from "lucide-react"
+import { useEffect, useState } from "react"
+
+function CopyrightFooter() {
+  const [year, setYear] = useState<number | null>(null)
+  useEffect(() => setYear(new Date().getFullYear()), [])
+  if (year === null) return null
+  return <p>&copy; {year} Vastis. All rights reserved.</p>
+}
 
 export default function ServicesPage() {
   return (
@@ -574,7 +583,7 @@ export default function ServicesPage() {
           </div>
 
           <div className="border-t border-purple-100 mt-8 pt-8 text-center text-sm text-gray-500">
-            <p>&copy; {new Date().getFullYear()} Vastis. All rights reserved.</p>
+            <CopyrightFooter />
           </div>
         </div>
       </footer>

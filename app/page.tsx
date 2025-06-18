@@ -1,8 +1,17 @@
+"use client"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { VastisLogo } from "@/components/vastis-logo"
 import { MainNav } from "@/components/main-nav"
 import { ArrowRight, Calendar, MapPin, Shield, Users } from "lucide-react"
+import { useEffect, useState } from "react"
+
+function CopyrightFooter() {
+  const [year, setYear] = useState<number | null>(null)
+  useEffect(() => setYear(new Date().getFullYear()), [])
+  if (year === null) return null
+  return <p>&copy; {year} Vastis. All rights reserved.</p>
+}
 
 export default function Home() {
   return (
@@ -235,7 +244,7 @@ export default function Home() {
           </div>
 
           <div className="border-t border-purple-100 mt-12 pt-8 text-center text-gray-500">
-            <p>&copy; {new Date().getFullYear()} Vastis. All rights reserved.</p>
+            <CopyrightFooter />
           </div>
         </div>
       </footer>

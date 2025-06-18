@@ -113,21 +113,6 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Check if enough time has passed since the last attempt (32 seconds minimum)
-    const now = Date.now()
-    const timeSinceLastAttempt = now - lastAttemptTime
-    if (timeSinceLastAttempt < 32000) {
-      // 32 seconds in milliseconds
-      const timeToWait = Math.ceil((32000 - timeSinceLastAttempt) / 1000)
-      setError(`Please wait ${timeToWait} seconds before trying again (Supabase rate limit)`)
-      toast({
-        title: "Rate limit detected",
-        description: `Please wait ${timeToWait} seconds before trying again.`,
-        variant: "destructive",
-      })
-      return
-    }
-
     if (password !== confirmPassword) {
       setError("Passwords do not match")
       return
@@ -148,14 +133,13 @@ export default function Register() {
       return
     }
 
-    if (role === "patient" && (!firstName || !lastName || !address || !dateOfBirth || !gender || !bloodType)) {
+    if (role === "patient" && (!firstName || !lastName || !address || !dateOfBirth || !gender)) {
       setError("Please fill in all required patient information")
       return
     }
 
     setLoading(true)
     setError(null)
-    setLastAttemptTime(now) // Record this attempt time
 
     try {
       // Step 1: Create auth user
@@ -192,6 +176,7 @@ export default function Register() {
 
       const userId = data.user.id
       console.log("User created successfully with ID:", userId)
+      console.log("About to insert into user_roles with userId:", userId, "and role:", role)
 
       // Step 2: Create user role
       setLoadingMessage("Setting up your profile...")
@@ -204,7 +189,11 @@ export default function Register() {
 
       if (roleError) {
         console.error("Role creation error:", roleError)
-        throw new Error(roleError.message)
+        throw new Error(
+          roleError.message ||
+          JSON.stringify(roleError) ||
+          "Unknown error occurred while creating user role"
+        )
       }
 
       // Step 3: Create profile based on role
@@ -220,8 +209,6 @@ export default function Register() {
           address,
           date_of_birth: dateOfBirth,
           gender,
-          blood_type: bloodType,
-          credit_card_info: "", // Default empty string for credit_card_info
         })
         if (error) {
           console.error("Patient profile creation error:", error)
@@ -426,25 +413,6 @@ export default function Register() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bloodType">Blood Type *</Label>
-                      <Select value={bloodType} onValueChange={setBloodType}>
-                        <SelectTrigger id="bloodType">
-                          <SelectValue placeholder="Select blood type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="A+">A+</SelectItem>
-                          <SelectItem value="A-">A-</SelectItem>
-                          <SelectItem value="B+">B+</SelectItem>
-                          <SelectItem value="B-">B-</SelectItem>
-                          <SelectItem value="AB+">AB+</SelectItem>
-                          <SelectItem value="AB-">AB-</SelectItem>
-                          <SelectItem value="O+">O+</SelectItem>
-                          <SelectItem value="O-">O-</SelectItem>
-                          <SelectItem value="Unknown">Unknown</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </>
                 )}
 
@@ -523,7 +491,7 @@ export default function Register() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading || (inviteCode && !invitationValid)}>
+                <Button type="submit" className="w-full" disabled={loading || Boolean(inviteCode && !invitationValid)}>
                   Create Account
                 </Button>
               </form>

@@ -4,7 +4,7 @@ import Link from "next/link"
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { MainNav } from "@/components/main-nav"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, Mail, Phone, Clock } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
+
+function CopyrightFooter() {
+  const [year, setYear] = useState<number | null>(null)
+  useEffect(() => setYear(new Date().getFullYear()), [])
+  if (year === null) return null
+  return <p>&copy; {year} Vastis. All rights reserved.</p>
+}
 
 export default function ContactPage() {
   const { toast } = useToast()
@@ -348,7 +355,7 @@ export default function ContactPage() {
           </div>
 
           <div className="border-t border-purple-100 mt-8 pt-8 text-center text-sm text-gray-500">
-            <p>&copy; {new Date().getFullYear()} Vastis. All rights reserved.</p>
+            <CopyrightFooter />
           </div>
         </div>
       </footer>
