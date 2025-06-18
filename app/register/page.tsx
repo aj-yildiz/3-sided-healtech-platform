@@ -24,7 +24,6 @@ export default function Register() {
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
-  const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [role, setRole] = useState<"patient" | "doctor" | "gym">("patient")
@@ -101,7 +100,6 @@ export default function Register() {
       // Pre-fill form with invitation data
       if (data.first_name) setFirstName(data.first_name)
       if (data.last_name) setLastName(data.last_name)
-      if (data.phone) setPhone(data.phone)
       if (data.specialization) setSpecialization(data.specialization)
     } catch (error) {
       console.error("Error verifying invitation:", error)
@@ -146,18 +144,15 @@ export default function Register() {
       setLoadingMessage("Creating your account...")
       setRegistrationStep(1)
 
-      console.log("Attempting to sign up with email:", email)
-
-      // Ensure email is trimmed and lowercase
-      const cleanEmail = email.trim().toLowerCase()
-
+      console.log("Starting signUp...")
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email: cleanEmail,
+        email: email.trim().toLowerCase(),
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/login`,
         },
       })
+      console.log("signUp result:", data, signUpError)
 
       if (signUpError) {
         console.error("Sign up error details:", signUpError)
@@ -182,6 +177,7 @@ export default function Register() {
       setLoadingMessage("Setting up your profile...")
       setRegistrationStep(2)
 
+      console.log("Inserting into user_roles...")
       const { error: roleError } = await supabase.from("user_roles").insert({
         user_id: userId,
         role,
@@ -204,8 +200,7 @@ export default function Register() {
         const { error } = await supabase.from("patients").insert({
           user_id: userId,
           name: `${firstName} ${lastName}`,
-          email: cleanEmail,
-          phone,
+          email: email.trim().toLowerCase(),
           address,
           date_of_birth: dateOfBirth,
           gender,
@@ -218,8 +213,7 @@ export default function Register() {
         const { error } = await supabase.from("doctors").insert({
           user_id: userId,
           name: `${firstName} ${lastName}`,
-          email: cleanEmail,
-          phone,
+          email: email.trim().toLowerCase(),
           specialization,
           license_number: licenseNumber,
           address: address || "", // Use address if provided, otherwise empty string
@@ -232,8 +226,7 @@ export default function Register() {
         const { error } = await supabase.from("gyms").insert({
           user_id: userId,
           name: gymName,
-          email: cleanEmail,
-          phone,
+          email: email.trim().toLowerCase(),
           address: gymAddress,
         })
         if (error) {
@@ -248,7 +241,7 @@ export default function Register() {
           .from("invitations")
           .update({ status: "accepted" })
           .eq("invite_code", inviteCode)
-          .eq("email", cleanEmail)
+          .eq("email", email.trim().toLowerCase())
       }
 
       // Success! Redirect to login page with success message
@@ -376,11 +369,6 @@ export default function Register() {
                     required
                     disabled={!!inviteCode}
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number *</Label>
-                  <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} required />
                 </div>
 
                 {role === "patient" && (
