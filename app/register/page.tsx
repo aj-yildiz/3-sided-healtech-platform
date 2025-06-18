@@ -165,8 +165,13 @@ export default function Register() {
       }
 
       if (!data?.user) {
-        console.error("No user returned from signUp")
-        throw new Error("Failed to create user account")
+        console.error("No user returned from signUp. User must confirm their email before logging in.")
+        toast({
+          title: "Check your email",
+          description: "Registration successful! Please check your email and confirm your registration before logging in.",
+        })
+        setLoading(false)
+        return
       }
 
       const userId = data.user.id
