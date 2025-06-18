@@ -1,4 +1,4 @@
-# Vastis Platform
+# 3 Sided Healthcare Platform
 
 ## Environment Setup
 
