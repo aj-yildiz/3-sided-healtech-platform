@@ -21,8 +21,8 @@ After running the script, the medical records feature will be immediately availa
 
 If you encounter any issues:
 
-1. Check the Supabase logs for any SQL errors
-2. Verify that the patients table exists and has the expected structure
-3. Ensure that the authenticated role has the necessary permissions
+1. Check the Supabase logs for any errors
+3. Verify that the patients table exists and has the expected structure
+4. Ensure that the authenticated role has the necessary permissions
 
 For additional help, contact the development team.
