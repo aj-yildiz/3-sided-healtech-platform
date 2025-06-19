@@ -9,6 +9,10 @@ export default function Dashboard() {
   const router = useRouter()
 
   useEffect(() => {
+    console.log('Dashboard loading:', loading)
+    console.log('Dashboard user:', user)
+    console.log('Dashboard userRole:', userRole)
+
     if (!loading) {
       if (!user) {
         router.replace("/login")

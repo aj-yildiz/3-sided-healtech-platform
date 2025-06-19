@@ -111,6 +111,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setLoading(false)
       console.log('[AuthProvider] setLoading(false)')
+      // Debug logs
+      console.log('[AuthProvider] user:', session?.user ?? null)
+      console.log('[AuthProvider] userRole:', role)
+      console.log('[AuthProvider] userProfile:', profileData)
+      console.log('[AuthProvider] loading:', loading)
     }
 
     const {
@@ -178,6 +183,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
       console.log('[AuthProvider] setLoading(false) from onAuthStateChange')
       router.refresh()
+      // Debug logs
+      console.log('[AuthProvider] user:', session?.user ?? null)
+      console.log('[AuthProvider] userRole:', role)
+      console.log('[AuthProvider] userProfile:', profileData)
+      console.log('[AuthProvider] loading:', loading)
     })
 
     setData()
