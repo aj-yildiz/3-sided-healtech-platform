@@ -310,9 +310,12 @@ export async function getServiceTypes() {
 }
 
 export async function uploadMedicalRecord(patientId: number, file: File, recordType: string, description: string) {
+  console.log('[uploadMedicalRecord] called', { patientId, file, recordType, description });
   try {
     // Upload the file to storage
-    const filePath = await uploadFile("medical-records", `patients/${patientId}/${recordType}`, file)
+    console.log('[uploadMedicalRecord] uploading file to storage...');
+    const filePath = await uploadFile("medical-records", `patients/${patientId}/${recordType}`, file);
+    console.log('[uploadMedicalRecord] file uploaded, filePath:', filePath);
 
     // Create a record in the medical_records table
     await create("medical_records", {
@@ -321,13 +324,14 @@ export async function uploadMedicalRecord(patientId: number, file: File, recordT
       description: description,
       file_path: filePath,
       file_name: file.name,
-    })
+    });
+    console.log('[uploadMedicalRecord] record created in DB');
 
-    revalidatePath("/patient/medical-history")
-    return { success: true, recordUrl: filePath }
+    revalidatePath("/patient/medical-history");
+    return { success: true, recordUrl: filePath };
   } catch (error: any) {
-    console.error("Error uploading medical record:", error)
-    throw new Error(`Failed to upload record: ${error.message}`)
+    console.error("[uploadMedicalRecord] Error uploading medical record:", error);
+    throw new Error(`Failed to upload record: ${error.message}`);
   }
 }
 

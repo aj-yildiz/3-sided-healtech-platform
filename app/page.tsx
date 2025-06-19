@@ -15,7 +15,21 @@ function CopyrightFooter() {
 }
 
 export default function Home() {
-  const { user } = useAuth()
+  const { user, userRole } = useAuth()
+
+  // Redirect logic for authenticated users
+  if (user && userRole === 'patient') {
+    if (typeof window !== 'undefined') window.location.href = '/patient/dashboard'
+    return null
+  }
+  if (user && userRole === 'doctor') {
+    if (typeof window !== 'undefined') window.location.href = '/doctor/dashboard'
+    return null
+  }
+  if (user && userRole === 'gym') {
+    if (typeof window !== 'undefined') window.location.href = '/gym/dashboard'
+    return null
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-white">

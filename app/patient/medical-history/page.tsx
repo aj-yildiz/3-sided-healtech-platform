@@ -83,6 +83,7 @@ export default function MedicalHistory() {
   }
 
   const handleSubmit = async () => {
+    console.log('[MedicalHistory] handleSubmit called', { recordType, recordDescription, selectedFile, userProfile });
     if (!tableExists) {
       setError("Medical records feature is currently being set up. Please check back later.")
       setIsDialogOpen(false)
@@ -95,8 +96,9 @@ export default function MedicalHistory() {
     }
 
     try {
+      console.log('[MedicalHistory] calling uploadMedicalRecord...');
       await uploadMedicalRecord(userProfile.id, selectedFile, recordType, recordDescription)
-
+      console.log('[MedicalHistory] uploadMedicalRecord success');
       // Refresh records
       const data = await getMedicalRecords(userProfile.id)
       setRecords(data || [])
@@ -108,7 +110,7 @@ export default function MedicalHistory() {
       setIsDialogOpen(false)
       setSuccess("Medical record uploaded successfully")
     } catch (error: any) {
-      console.error("Error uploading medical record:", error)
+      console.error("[MedicalHistory] Error uploading medical record:", error)
 
       // Check if the error is because the table doesn't exist
       if (
