@@ -46,7 +46,7 @@ export default function Home() {
             <div className="container relative z-10">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                 <div>
-                  <VastisLogo size="xl" variant="vibrant" className="mb-6" />
+                  <VastisLogo size="xl" className="mb-6" />
                   <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-purple-600 to-pink-500">
                     Connecting Patients with Physiotherapists in Available Gym Spaces
                   </h1>
@@ -69,7 +69,7 @@ export default function Home() {
                 </div>
                 <div className="relative rounded-xl overflow-hidden shadow-2xl">
                   <div className="aspect-video bg-gradient-to-br from-purple-500 via-purple-600 to-pink-500 p-8 flex items-center justify-center">
-                    <VastisLogo asImage size="2xl" variant="white" showText={false} />
+                    <VastisLogo size="2xl" />
                   </div>
                 </div>
               </div>
