@@ -28,96 +28,58 @@ import Link from "next/link"
 const localizer = momentLocalizer(moment)
 
 interface Appointment {
-  id: number
-  doctor_name: string
-  doctor_specialization: string
-  doctor_email: string
-  doctor_phone: string
-  gym_name: string
-  gym_address: string
+  id: string
   appointment_date: string
-  appointment_time: string
-  appointment_type: string
-  service_name: string
-  appointment_status: string
-  appointment_notes: string | null
-  price: number | null
-  insurance_claim_status: string | null
+  start_time: string
+  status: string
+  practitioner_id: string
+  gym_id: string
 }
 
 export default function PatientAppointments() {
   const { user } = useAuth()
   const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState<boolean>(true)
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [cancellingId, setCancellingId] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const supabase = createClientComponentClient()
 
   useEffect(() => {
-    const fetchAppointments = async () => {
-      if (!user) return
-
+    async function fetchAppointments() {
+      setLoading(true)
+      setError(null)
       try {
-        // First get the patient ID
-        const { data: patientData } = await supabase.from("patients").select("id").eq("user_id", user.id).single()
-
-        if (!patientData) return
-
-        // Then get the appointments with doctor and gym info
+        const { data: sessionData } = await supabase.auth.getSession()
+        const user = sessionData.session?.user
+        if (!user) throw new Error("No user session")
+        // Get patient id
+        const { data: patientRow, error: patientError } = await supabase
+          .from("patients")
+          .select("id")
+          .eq("user_id", user.id)
+          .single()
+        if (patientError) throw patientError
+        if (!patientRow) throw new Error("No patient record found for this user.")
         const { data, error } = await supabase
           .from("appointments")
-          .select(`
-            id,
-            appointment_date,
-            appointment_time,
-            appointment_type,
-            appointment_status,
-            appointment_notes,
-            price,
-            doctors:doctor_id(id, name, specialization, email, phone),
-            gyms:gym_id(id, name, address),
-            service_types:service_type_id(id, name),
-            insurance_claims:insurance_claim_id(id, status)
-          `)
-          .eq("patient_id", patientData.id)
+          .select("id, appointment_date, start_time, status, practitioner_id, gym_id")
+          .eq("patient_id", patientRow.id)
           .order("appointment_date", { ascending: true })
-
-        if (error) {
-          console.error("Error fetching appointments:", error)
-          return
-        }
-
-        // Transform the data
-        const formattedAppointments = data.map((item) => ({
-          id: item.id,
-          doctor_name: item.doctors.name,
-          doctor_specialization: item.doctors.specialization || "Healthcare Provider",
-          doctor_email: item.doctors.email,
-          doctor_phone: item.doctors.phone,
-          gym_name: item.gyms.name,
-          gym_address: item.gyms.address,
-          appointment_date: item.appointment_date,
-          appointment_time: item.appointment_time,
-          appointment_type: item.appointment_type,
-          service_name: item.service_types?.name || item.appointment_type,
-          appointment_status: item.appointment_status,
-          appointment_notes: item.appointment_notes,
-          price: item.price,
-          insurance_claim_status: item.insurance_claims?.status || null,
-        }))
-
-        setAppointments(formattedAppointments)
-      } catch (error) {
-        console.error("Error:", error)
-      } finally {
+        if (error) throw error
+        setAppointments((data as Appointment[]) || [])
         setLoading(false)
+        console.log("Loaded appointments:", data)
+      } catch (err: any) {
+        setError(err.message || "Failed to load appointments")
+        setLoading(false)
+        console.error("Error loading appointments:", err)
       }
     }
-
     fetchAppointments()
-  }, [user, supabase])
+  }, [])
 
   const handleCancelAppointment = async (id: number) => {
     try {
@@ -125,7 +87,7 @@ export default function PatientAppointments() {
       await cancelAppointment(id)
 
       // Update the local state
-      setAppointments(appointments.map((app) => (app.id === id ? { ...app, appointment_status: "cancelled" } : app)))
+      setAppointments(appointments.map((app) => (app.id === id ? { ...app, status: "cancelled" } : app)))
 
       toast({
         title: "Appointment cancelled",
@@ -168,13 +130,13 @@ export default function PatientAppointments() {
       appointments
         .filter(
           (app) =>
-            app.appointment_status === "scheduled" &&
-            new Date(`${app.appointment_date}T${app.appointment_time}`) >= new Date(),
+            app.status === "scheduled" &&
+            new Date(`${app.appointment_date}T${app.start_time}`) >= new Date(),
         )
         .sort(
           (a, b) =>
-            new Date(`${a.appointment_date}T${a.appointment_time}`).getTime() -
-            new Date(`${b.appointment_date}T${b.appointment_time}`).getTime(),
+            new Date(`${a.appointment_date}T${a.start_time}`).getTime() -
+            new Date(`${b.appointment_date}T${b.start_time}`).getTime(),
         ),
     [appointments],
   )
@@ -184,14 +146,14 @@ export default function PatientAppointments() {
       appointments
         .filter(
           (app) =>
-            app.appointment_status === "completed" ||
-            (app.appointment_status === "scheduled" &&
-              new Date(`${app.appointment_date}T${app.appointment_time}`) < new Date()),
+            app.status === "completed" ||
+            (app.status === "scheduled" &&
+              new Date(`${app.appointment_date}T${app.start_time}`) < new Date()),
         )
         .sort(
           (a, b) =>
-            new Date(`${b.appointment_date}T${b.appointment_time}`).getTime() -
-            new Date(`${a.appointment_date}T${a.appointment_time}`).getTime(),
+            new Date(`${b.appointment_date}T${b.start_time}`).getTime() -
+            new Date(`${a.appointment_date}T${a.start_time}`).getTime(),
         ),
     [appointments],
   )
@@ -199,11 +161,11 @@ export default function PatientAppointments() {
   const cancelledAppointments = useMemo(
     () =>
       appointments
-        .filter((app) => app.appointment_status === "cancelled")
+        .filter((app) => app.status === "cancelled")
         .sort(
           (a, b) =>
-            new Date(`${b.appointment_date}T${b.appointment_time}`).getTime() -
-            new Date(`${a.appointment_date}T${a.appointment_time}`).getTime(),
+            new Date(`${b.appointment_date}T${b.start_time}`).getTime() -
+            new Date(`${a.appointment_date}T${a.start_time}`).getTime(),
         ),
     [appointments],
   )
@@ -212,15 +174,15 @@ export default function PatientAppointments() {
   const calendarEvents = useMemo(
     () =>
       appointments.map((appointment) => {
-        const startDate = new Date(`${appointment.appointment_date}T${appointment.appointment_time}`)
+        const startDate = new Date(`${appointment.appointment_date}T${appointment.start_time}`)
         const endDate = new Date(startDate.getTime() + 60 * 60 * 1000) // Assuming 1 hour appointments
 
         return {
           id: appointment.id,
-          title: `${appointment.service_name} with ${appointment.doctor_name}`,
+          title: `${appointment.status} with ${appointment.practitioner_id}`,
           start: startDate,
           end: endDate,
-          status: appointment.appointment_status,
+          status: appointment.status,
           resource: appointment,
         }
       }),
@@ -420,16 +382,15 @@ export default function PatientAppointments() {
           {selectedAppointment && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">{selectedAppointment.service_name}</h3>
-                {getStatusBadge(selectedAppointment.appointment_status)}
+                <h3 className="text-lg font-semibold">{selectedAppointment.status}</h3>
+                {getStatusBadge(selectedAppointment.status)}
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-start gap-2">
                   <User className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium">{selectedAppointment.doctor_name}</p>
-                    <p className="text-sm text-muted-foreground">{selectedAppointment.doctor_specialization}</p>
+                    <p className="font-medium">{selectedAppointment.practitioner_id}</p>
                   </div>
                 </div>
 
@@ -440,50 +401,26 @@ export default function PatientAppointments() {
 
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-muted-foreground" />
-                  <p>{formatTime(selectedAppointment.appointment_time)}</p>
+                  <p>{formatTime(selectedAppointment.start_time)}</p>
                 </div>
 
                 <div className="flex items-start gap-2">
                   <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="font-medium">{selectedAppointment.gym_name}</p>
-                    <p className="text-sm text-muted-foreground">{selectedAppointment.gym_address}</p>
+                    <p className="font-medium">{selectedAppointment.gym_id}</p>
                   </div>
                 </div>
               </div>
 
-              {selectedAppointment.appointment_notes && (
-                <div>
-                  <p className="text-sm font-medium mb-1">Notes:</p>
-                  <p className="text-sm text-muted-foreground">{selectedAppointment.appointment_notes}</p>
-                </div>
-              )}
-
-              {selectedAppointment.price && (
-                <div>
-                  <p className="text-sm font-medium mb-1">Price:</p>
-                  <p className="text-sm">${selectedAppointment.price.toFixed(2)}</p>
-                </div>
-              )}
-
-              {selectedAppointment.insurance_claim_status && (
-                <div>
-                  <p className="text-sm font-medium mb-1">Insurance Claim:</p>
-                  <Badge variant="outline">{selectedAppointment.insurance_claim_status}</Badge>
-                </div>
-              )}
-
               <div className="flex items-start gap-2">
                 <div className="bg-muted p-2 rounded-md">
                   <p className="text-xs font-medium mb-1">Contact Information:</p>
-                  <p className="text-xs">Email: {selectedAppointment.doctor_email}</p>
-                  <p className="text-xs">Phone: {selectedAppointment.doctor_phone}</p>
                 </div>
               </div>
             </div>
           )}
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            {selectedAppointment && selectedAppointment.appointment_status === "scheduled" && (
+            {selectedAppointment && selectedAppointment.status === "scheduled" && (
               <Button
                 variant="destructive"
                 onClick={() => {
@@ -514,13 +451,13 @@ export default function PatientAppointments() {
             <div className="space-y-4">
               <div className="bg-muted p-4 rounded-md">
                 <p className="font-medium">
-                  {selectedAppointment.service_name} with {selectedAppointment.doctor_name}
+                  {selectedAppointment.status} with {selectedAppointment.practitioner_id}
                 </p>
                 <p className="text-sm">
                   {formatDate(selectedAppointment.appointment_date)} at{" "}
-                  {formatTime(selectedAppointment.appointment_time)}
+                  {formatTime(selectedAppointment.start_time)}
                 </p>
-                <p className="text-sm">{selectedAppointment.gym_name}</p>
+                <p className="text-sm">{selectedAppointment.gym_id}</p>
               </div>
 
               <div className="flex items-center gap-2 text-amber-600">
@@ -543,6 +480,11 @@ export default function PatientAppointments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Error Message */}
+      {error && (
+        <div className="text-red-500 text-center py-4">{error}</div>
+      )}
     </div>
   )
 }
@@ -567,7 +509,7 @@ function AppointmentCard({
   formatTime: (time: string) => string
   getStatusBadge: (status: string) => JSX.Element
 }) {
-  const isPast = new Date(`${appointment.appointment_date}T${appointment.appointment_time}`) < new Date()
+  const isPast = new Date(`${appointment.appointment_date}T${appointment.start_time}`) < new Date()
 
   return (
     <Card>
@@ -575,12 +517,9 @@ function AppointmentCard({
         <div className="flex flex-col md:flex-row justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-lg font-bold">{appointment.doctor_name}</h3>
-              <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
-                {appointment.doctor_specialization}
-              </span>
+              <h3 className="text-lg font-bold">{appointment.practitioner_id}</h3>
             </div>
-            <p className="text-muted-foreground">{appointment.service_name}</p>
+            <p className="text-muted-foreground">{appointment.status}</p>
 
             <div className="flex items-center mt-4">
               <CalendarIcon className="mr-2 h-4 w-4" />
@@ -589,26 +528,19 @@ function AppointmentCard({
 
             <div className="flex items-center mt-2">
               <Clock className="mr-2 h-4 w-4" />
-              <span>{formatTime(appointment.appointment_time)}</span>
-            </div>
-
-            <div className="flex items-center mt-2">
-              <MapPin className="mr-2 h-4 w-4" />
-              <span>
-                {appointment.gym_name} - {appointment.gym_address}
-              </span>
+              <span>{formatTime(appointment.start_time)}</span>
             </div>
           </div>
 
           <div className="mt-4 md:mt-0 flex flex-col items-end gap-2">
-            {getStatusBadge(appointment.appointment_status)}
+            {getStatusBadge(appointment.status)}
 
             <div className="flex gap-2 mt-2">
               <Button variant="outline" size="sm" onClick={onViewDetails}>
                 View Details
               </Button>
 
-              {showCancel && appointment.appointment_status === "scheduled" && !isPast && (
+              {showCancel && appointment.status === "scheduled" && !isPast && (
                 <Button variant="destructive" size="sm" onClick={onCancel} disabled={isCancelling}>
                   {isCancelling ? "Cancelling..." : "Cancel"}
                 </Button>

@@ -11,6 +11,9 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
   throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is required")
 }
 
+console.log('[Supabase] URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+console.log('[Supabase] ANON KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
 // Create a singleton for the client-side Supabase client
 let clientInstance: ReturnType<typeof createClient<Database>> | null = null
 

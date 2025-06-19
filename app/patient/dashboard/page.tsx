@@ -12,7 +12,7 @@ import Link from "next/link"
 import { Calendar, Clock, MapPin, User, CalendarDays, Search } from "lucide-react"
 
 interface Appointment {
-  id: number
+  id: string
   doctor_name: string
   doctor_specialization: string
   gym_name: string
@@ -27,21 +27,26 @@ interface Appointment {
 export default function PatientDashboard() {
   const { user } = useAuth()
   const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState<boolean>(true)
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false)
   const [googleCalendarError, setGoogleCalendarError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const supabase = createClientComponentClient()
 
   useEffect(() => {
     const fetchAppointments = async () => {
       if (!user) return
-
+      setLoading(true)
+      setError(null)
       try {
         // First get the patient ID
-        const { data: patientData } = await supabase.from("patients").select("id").eq("user_id", user.id).single()
-
-        if (!patientData) return
-
+        const { data: patientData, error: patientError } = await supabase.from("patients").select("id").eq("user_id", user.id).single()
+        if (patientError) throw patientError
+        if (!patientData) {
+          setError("No patient record found for this user.")
+          setLoading(false)
+          return
+        }
         // Then get the appointments with doctor and gym info
         const { data, error } = await supabase
           .from("appointments")
@@ -57,36 +62,54 @@ export default function PatientDashboard() {
           `)
           .eq("patient_id", patientData.id)
           .order("appointment_date", { ascending: true })
-
-        if (error) {
-          console.error("Error fetching appointments:", error)
+        if (error) throw error
+        if (!data) {
+          setAppointments([])
+          setLoading(false)
           return
         }
-
         // Transform the data
-        const formattedAppointments = data.map((item) => ({
+        const formattedAppointments: Appointment[] = data.map((item: any) => ({
           id: item.id,
-          doctor_name: item.doctors.name,
-          doctor_specialization: item.doctors.specialization || "Healthcare Provider",
-          gym_name: item.gyms.name,
-          gym_address: item.gyms.address,
+          doctor_name: item.doctors?.name || "Unknown",
+          doctor_specialization: item.doctors?.specialization || "Healthcare Provider",
+          gym_name: item.gyms?.name || "Unknown",
+          gym_address: item.gyms?.address || "Unknown",
           appointment_date: item.appointment_date,
           appointment_time: item.appointment_time,
           appointment_type: item.appointment_type,
           service_name: item.service_types?.name || item.appointment_type,
           appointment_status: item.appointment_status,
         }))
-
         setAppointments(formattedAppointments)
-      } catch (error) {
-        console.error("Error:", error)
-      } finally {
         setLoading(false)
+        console.log("Loaded appointments:", formattedAppointments)
+      } catch (err: any) {
+        setError(err.message || "Failed to load appointments")
+        setLoading(false)
+        console.error("Error loading appointments:", err)
       }
     }
-
     fetchAppointments()
   }, [user, supabase])
+
+  useEffect(() => {
+    const ensurePatientRow = async () => {
+      if (!user) return;
+      const { data: patientRow } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+      if (!patientRow) {
+        await supabase.from("patients").insert({
+          user_id: user.id,
+          name: user.email,
+        });
+      }
+    };
+    ensurePatientRow();
+  }, [user, supabase]);
 
   const connectGoogleCalendar = async () => {
     try {
@@ -195,6 +218,13 @@ export default function PatientDashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {error && (
+            <div className="text-red-500 text-center py-4">{error}</div>
+          )}
+          {loading && (
+            <div className="text-center py-10">Loading appointments...</div>
+          )}
 
           <Tabs defaultValue="upcoming" className="space-y-4">
             <TabsList>

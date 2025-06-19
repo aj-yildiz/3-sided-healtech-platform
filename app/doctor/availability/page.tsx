@@ -15,9 +15,8 @@ import Link from "next/link"
 import { Input } from "@/components/ui/input"
 
 interface Gym {
-  id: number
+  id: string
   name: string
-  address: string
 }
 
 interface TimeSlot {
@@ -26,6 +25,15 @@ interface TimeSlot {
   startTime: string
   endTime: string
   gymId: number
+}
+
+interface Availability {
+  id: string
+  doctor_id: string
+  gym_id: string
+  available_date: string
+  start_time: string
+  end_time: string
 }
 
 const daysOfWeek = [
@@ -50,7 +58,7 @@ export default function DoctorAvailability() {
     endTime: "17:00",
     gymId: 0,
   })
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState<boolean>(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -58,59 +66,42 @@ export default function DoctorAvailability() {
   const [date, setDate] = useState("")
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
-  const [availabilities, setAvailabilities] = useState([])
+  const [availabilities, setAvailabilities] = useState<Availability[]>([])
 
   const supabase = createClientComponentClient()
 
   useEffect(() => {
-    const fetchDoctorData = async () => {
-      if (!user || !userProfile) return
-
+    async function fetchGymsAndAvailabilities() {
+      setLoading(true)
+      setError(null)
       try {
-        setDoctorId(userProfile.id)
-
-        // Get gyms where this doctor works
-        const { data: doctorLocations, error: locationsError } = await supabase
-          .from("doctor_locations")
-          .select("gym_id")
-          .eq("doctor_id", userProfile.id)
-
-        if (locationsError) throw locationsError
-
-        const gymIds = doctorLocations?.map((dl) => dl.gym_id) || []
-
-        if (gymIds.length === 0) {
-          setLoading(false)
-          return
-        }
-
-        // Get gym details
-        const { data: gymData, error: gymError } = await supabase
-          .from("gyms")
-          .select("id, name, address")
-          .in("id", gymIds)
-
-        if (gymError) throw gymError
-
-        setGyms(gymData || [])
-
-        if (gymData && gymData.length > 0) {
-          setSelectedGymId(gymData[0].id)
-          setNewTimeSlot((prev) => ({ ...prev, gymId: gymData[0].id }))
-
-          // Get availability for the first gym
-          await fetchAvailability(userProfile.id, gymData[0].id)
-        }
-      } catch (error) {
-        console.error("Error fetching doctor data:", error)
-        setError("Failed to load your data")
-      } finally {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const user = sessionData.session?.user
+        if (!user) throw new Error("No user session")
+        const { data: gymsData, error: gymsError } = await supabase
+          .from("practitioner_gym_requests")
+          .select("gym_id, gyms(name)")
+          .eq("doctor_id", user.id)
+          .eq("status", "approved")
+        if (gymsError) throw gymsError
+        setGyms((gymsData?.map(r => ({ id: String(r.gym_id), name: r.gyms.name })) as Gym[]) || [])
+        // Fetch availabilities
+        const { data: avails, error: availsError } = await supabase
+          .from("doctor_availability")
+          .select("id, doctor_id, gym_id, available_date, start_time, end_time")
+          .eq("doctor_id", user.id)
+        if (availsError) throw availsError
+        setAvailabilities((avails as Availability[]) || [])
         setLoading(false)
+        console.log("Loaded gyms:", gymsData, "Loaded availabilities:", avails)
+      } catch (err: any) {
+        setError(err.message || "Failed to load gyms/availabilities")
+        setLoading(false)
+        console.error("Error loading gyms/availabilities:", err)
       }
     }
-
-    fetchDoctorData()
-  }, [user, userProfile, supabase])
+    fetchGymsAndAvailabilities()
+  }, [])
 
   const fetchAvailability = async (doctorId: number, gymId: number) => {
     try {
@@ -255,8 +246,8 @@ export default function DoctorAvailability() {
                         </SelectTrigger>
                         <SelectContent>
                           {gyms.map((gym) => (
-                            <SelectItem key={gym.id} value={gym.id.toString()}>
-                              {gym.name} - {gym.address}
+                            <SelectItem key={gym.id} value={gym.id}>
+                              {gym.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

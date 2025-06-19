@@ -22,6 +22,7 @@ import {
   submitInsuranceClaim,
 } from "@/app/actions/patient-actions"
 import { getDoctorAvailabilityForPatient } from "@/app/actions/patient-actions"
+import { createClientComponentClient } from "@/lib/supabase"
 
 interface Doctor {
   id: number
@@ -93,6 +94,7 @@ export default function BookAppointment() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<boolean>(false)
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
+  const [gyms, setGyms] = useState<Gym[]>([])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -181,6 +183,20 @@ export default function BookAppointment() {
     }
   }, [date, selectedLocation, availableLocations])
 
+  useEffect(() => {
+    async function fetchGyms() {
+      if (!doctorId) return;
+      const supabase = createClientComponentClient();
+      const { data } = await supabase
+        .from("practitioner_gym_requests")
+        .select("gym_id, gyms(name)")
+        .eq("doctor_id", doctorId)
+        .eq("status", "approved");
+      setGyms(data?.map(r => ({ id: r.gym_id, name: r.gyms.name })) || []);
+    }
+    fetchGyms();
+  }, [doctorId]);
+
   const handleBookAppointment = async () => {
     if (!patientId || !doctor || !selectedLocation || !date || !timeSlot || !serviceType) {
       setError("Please select all required fields")
@@ -219,6 +235,31 @@ export default function BookAppointment() {
     } finally {
       setBooking(false)
     }
+  }
+
+  const handleBook = async () => {
+    setLoading(true)
+    const supabase = createClientComponentClient()
+    const { data: sessionData } = await supabase.auth.getSession()
+    const user = sessionData.session?.user
+    if (!user) return
+    // Get patient id
+    const { data: patientRow } = await supabase
+      .from("patients")
+      .select("id")
+      .eq("user_id", user.id)
+      .single()
+    if (!patientRow) return
+    await supabase.from("appointments").insert({
+      patient_id: patientRow.id,
+      practitioner_id: doctorId,
+      gym_id: selectedLocation,
+      appointment_date: date,
+      start_time: timeSlot,
+      status: "scheduled",
+    })
+    setLoading(false)
+    router.push("/patient/appointments")
   }
 
   return (
@@ -274,15 +315,14 @@ export default function BookAppointment() {
                     onValueChange={(value) => setSelectedLocation(Number.parseInt(value))}
                     className="grid grid-cols-1 gap-2"
                   >
-                    {availableLocations.map((location) => (
-                      <div key={location.gym_id} className="flex items-center space-x-2 border rounded-md p-3">
-                        <RadioGroupItem value={location.gym_id.toString()} id={`location-${location.gym_id}`} />
-                        <Label htmlFor={`location-${location.gym_id}`} className="flex-1 cursor-pointer">
+                    {gyms.map((gym) => (
+                      <div key={gym.id} className="flex items-center space-x-2 border rounded-md p-3">
+                        <RadioGroupItem value={gym.id.toString()} id={`location-${gym.id}`} />
+                        <Label htmlFor={`location-${gym.id}`} className="flex-1 cursor-pointer">
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground" />
                             <div>
-                              <p className="font-medium">{location.gyms.name}</p>
-                              <p className="text-sm text-muted-foreground">{location.gyms.address}</p>
+                              <p className="font-medium">{gym.name}</p>
                             </div>
                           </div>
                         </Label>
@@ -394,7 +434,7 @@ export default function BookAppointment() {
               <CardFooter>
                 <Button
                   className="w-full"
-                  onClick={handleBookAppointment}
+                  onClick={handleBook}
                   disabled={!selectedLocation || !date || !timeSlot || booking || (useInsurance && !selectedInsurance)}
                 >
                   {booking ? "Booking..." : "Book Appointment"}

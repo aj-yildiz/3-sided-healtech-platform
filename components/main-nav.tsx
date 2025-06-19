@@ -23,7 +23,7 @@ export function MainNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const adminLinks = [
-    { href: "/admin/dashboard", label: "Dashboard" },
+    { href: "/dashboard", label: "Dashboard" },
     { href: "/admin/patients", label: "Patients" },
     { href: "/admin/doctors", label: "Healthcare Providers" },
     { href: "/admin/gyms", label: "Gyms" },
@@ -34,7 +34,7 @@ export function MainNav() {
   ]
 
   const doctorLinks = [
-    { href: "/doctor/dashboard", label: "Dashboard" },
+    { href: "/dashboard", label: "Dashboard" },
     { href: "/doctor/availability", label: "Manage Availability" },
     { href: "/doctor/locations", label: "My Locations" },
     { href: "/doctor/services", label: "My Services" },
@@ -44,7 +44,7 @@ export function MainNav() {
   ]
 
   const gymLinks = [
-    { href: "/gym/dashboard", label: "Dashboard" },
+    { href: "/dashboard", label: "Dashboard" },
     { href: "/gym/availability", label: "Manage Availability" },
     { href: "/gym/doctors", label: "Healthcare Providers" },
     { href: "/gym/appointments", label: "Appointments" },
@@ -53,7 +53,7 @@ export function MainNav() {
   ]
 
   const patientLinks = [
-    { href: "/patient/dashboard", label: "Dashboard" },
+    { href: "/dashboard", label: "Dashboard" },
     { href: "/patient/find-provider", label: "Find Healthcare Provider" },
     { href: "/patient/appointments", label: "My Appointments" },
     { href: "/patient/medical-history", label: "Medical History" },

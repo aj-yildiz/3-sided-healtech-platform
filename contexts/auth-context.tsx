@@ -39,124 +39,135 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClientComponentClient()
 
   useEffect(() => {
+    console.log('[AuthProvider] useEffect start, loading:', loading)
     const setData = async () => {
+      console.log('[AuthProvider] setData called')
       const {
         data: { session },
         error,
       } = await supabase.auth.getSession()
       if (error) {
-        console.error(error)
+        console.error('[AuthProvider] getSession error:', error)
         setLoading(false)
         return
       }
-
+      console.log('[AuthProvider] session:', session)
       setSession(session)
       setUser(session?.user ?? null)
 
       if (session?.user) {
         // Fetch user role
-        const { data: roleData } = await supabase
+        const { data: roleData, error: roleError } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
           .single()
-
+        if (roleError) {
+          console.error('[AuthProvider] user_roles error:', roleError)
+        }
         const role = (roleData?.role as UserRole) || null
         setUserRole(role)
+        console.log('[AuthProvider] userRole:', role)
 
         // Fetch user profile based on role
         if (role) {
           let profileData = null
-
           if (role === "patient") {
-            const { data } = await supabase
+            const { data, error } = await supabase
               .from("patients")
               .select("id, name, email")
               .eq("user_id", session.user.id)
               .single()
+            if (error) console.error('[AuthProvider] patients error:', error)
             profileData = data
           } else if (role === "doctor") {
-            const { data } = await supabase
+            const { data, error } = await supabase
               .from("doctors")
               .select("id, name, email")
               .eq("user_id", session.user.id)
               .single()
+            if (error) console.error('[AuthProvider] doctors error:', error)
             profileData = data
           } else if (role === "gym") {
-            const { data } = await supabase
+            const { data, error } = await supabase
               .from("gyms")
               .select("id, name, email")
               .eq("user_id", session.user.id)
               .single()
+            if (error) console.error('[AuthProvider] gyms error:', error)
             profileData = data
           } else if (role === "admin") {
-            const { data } = await supabase
+            const { data, error } = await supabase
               .from("admin")
               .select("id, name, email")
               .eq("user_id", session.user.id)
               .single()
+            if (error) console.error('[AuthProvider] admin error:', error)
             profileData = data
           }
-
           setUserProfile(profileData)
+          console.log('[AuthProvider] userProfile:', profileData)
         }
       }
-
       setLoading(false)
+      console.log('[AuthProvider] setLoading(false)')
     }
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('[AuthProvider] onAuthStateChange event:', _event, session)
       setSession(session)
       setUser(session?.user ?? null)
-
       if (session?.user) {
-        // Fetch user role when auth state changes
-        const { data: roleData } = await supabase
+        const { data: roleData, error: roleError } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
           .single()
-
+        if (roleError) {
+          console.error('[AuthProvider] user_roles error:', roleError)
+        }
         const role = (roleData?.role as UserRole) || null
         setUserRole(role)
-
-        // Fetch user profile based on role
+        console.log('[AuthProvider] userRole:', role)
         if (role) {
           let profileData = null
-
           if (role === "patient") {
-            const { data } = await supabase
+            const { data, error } = await supabase
               .from("patients")
               .select("id, name, email")
               .eq("user_id", session.user.id)
               .single()
+            if (error) console.error('[AuthProvider] patients error:', error)
             profileData = data
           } else if (role === "doctor") {
-            const { data } = await supabase
+            const { data, error } = await supabase
               .from("doctors")
               .select("id, name, email")
               .eq("user_id", session.user.id)
               .single()
+            if (error) console.error('[AuthProvider] doctors error:', error)
             profileData = data
           } else if (role === "gym") {
-            const { data } = await supabase
+            const { data, error } = await supabase
               .from("gyms")
               .select("id, name, email")
               .eq("user_id", session.user.id)
               .single()
+            if (error) console.error('[AuthProvider] gyms error:', error)
             profileData = data
           } else if (role === "admin") {
-            const { data } = await supabase
+            const { data, error } = await supabase
               .from("admin")
               .select("id, name, email")
               .eq("user_id", session.user.id)
               .single()
+            if (error) console.error('[AuthProvider] admin error:', error)
             profileData = data
           }
-
           setUserProfile(profileData)
+          console.log('[AuthProvider] userProfile:', profileData)
         } else {
           setUserProfile(null)
         }
@@ -164,8 +175,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserRole(null)
         setUserProfile(null)
       }
-
       setLoading(false)
+      console.log('[AuthProvider] setLoading(false) from onAuthStateChange')
       router.refresh()
     })
 
@@ -195,23 +206,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       })
 
-      if (error) {
-        return { error }
+      if (error || !data.user) {
+        return { error: error || new Error("Failed to create user") }
       }
 
-      if (!data.user) {
-        return { error: new Error("Failed to create user") }
-      }
+      const userId = data.user.id
 
-      // Create user role entry
+      // 1. Insert role
       const { error: roleError } = await supabase.from("user_roles").insert({
-        user_id: data.user.id,
+        user_id: userId,
         role: role as string,
       })
 
       if (roleError) {
-        console.error("Error creating user role:", roleError)
         return { error: roleError }
+      }
+
+      // 2. Insert into role-specific table
+      if (role === "patient") {
+        await supabase.from("patients").insert({
+          user_id: userId,
+          email: email,
+          name: "",
+        })
+      } else if (role === "doctor") {
+        await supabase.from("doctors").insert({
+          user_id: userId,
+          email: email,
+          name: "",
+          specialization: "",
+        })
+      } else if (role === "gym") {
+        await supabase.from("gyms").insert({
+          user_id: userId,
+          email: email,
+          name: "",
+          address: "",
+        })
       }
 
       return { error: null }
@@ -223,7 +254,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut()
-    router.push("/")
+    setUser(null)
+    setSession(null)
+    setUserRole(null)
+    setUserProfile(null)
+    setLoading(false)
+    // Force a hard reload to clear any cached state
+    window.location.href = "/"
   }
 
   const checkAccess = (allowedRoles: UserRole[]) => {
