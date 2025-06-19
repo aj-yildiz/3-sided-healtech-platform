@@ -17,7 +17,14 @@ function CopyrightFooter() {
 export default function Home() {
   const { user, userRole } = useAuth()
 
-  // Redirect logic for authenticated users
+  useEffect(() => {
+    console.log('[DEBUG] user:', user);
+    console.log('[DEBUG] userRole:', userRole);
+  }, [user, userRole]);
+
+  const loading = user && userRole === undefined;
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
+
   if (user && userRole === 'patient') {
     if (typeof window !== 'undefined') window.location.href = '/patient/dashboard'
     return null
@@ -30,6 +37,17 @@ export default function Home() {
     if (typeof window !== 'undefined') window.location.href = '/gym/dashboard'
     return null
   }
+
+  useEffect(() => {
+    fetch('https://njsasvaazcgqoklweste.supabase.co/rest/v1/user_roles', {
+      headers: {
+        apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qc2FzdmFhemNncW9rbHdlc3RlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAyMDUyMDgsImV4cCI6MjA2NTc4MTIwOH0.qnY1hbgQYg75jmhHq0lLcpxsCkuP0dF57JzjbftcsQs'
+      }
+    })
+      .then(res => res.json())
+      .then(data => console.log('Manual fetch result:', data))
+      .catch(err => console.error('Manual fetch error:', err));
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
