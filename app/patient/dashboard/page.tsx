@@ -18,7 +18,8 @@ interface Appointment {
   gym_name: string
   gym_address: string
   appointment_date: string
-  appointment_time: string
+  start_time: string
+  end_time: string
   appointment_type: string
   service_name: string
   appointment_status: string
@@ -53,7 +54,8 @@ export default function PatientDashboard() {
           .select(`
             id,
             appointment_date,
-            appointment_time,
+            start_time,
+            end_time,
             appointment_type,
             appointment_status,
             doctors:doctor_id(name, specialization),
@@ -76,7 +78,8 @@ export default function PatientDashboard() {
           gym_name: item.gyms?.name || "Unknown",
           gym_address: item.gyms?.address || "Unknown",
           appointment_date: item.appointment_date,
-          appointment_time: item.appointment_time,
+          start_time: item.start_time,
+          end_time: item.end_time,
           appointment_type: item.appointment_type,
           service_name: item.service_types?.name || item.appointment_type,
           appointment_status: item.appointment_status,
@@ -258,7 +261,7 @@ export default function PatientDashboard() {
 
                             <div className="flex items-center mt-2">
                               <Clock className="mr-2 h-4 w-4" />
-                              <span>{formatTime(appointment.appointment_time)}</span>
+                              <span>{formatTime(appointment.start_time)} - {formatTime(appointment.end_time)}</span>
                             </div>
 
                             <div className="flex items-center mt-2">
@@ -325,7 +328,7 @@ export default function PatientDashboard() {
 
                             <div className="flex items-center mt-2">
                               <Clock className="mr-2 h-4 w-4" />
-                              <span>{formatTime(appointment.appointment_time)}</span>
+                              <span>{formatTime(appointment.start_time)} - {formatTime(appointment.end_time)}</span>
                             </div>
 
                             <div className="flex items-center mt-2">
