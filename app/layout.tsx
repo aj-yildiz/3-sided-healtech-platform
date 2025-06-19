@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { ClientLayoutWrapper } from "@/components/client-layout-wrapper"
 import { Toaster } from "@/components/ui/toaster"
 
+console.log('App mounted');
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
