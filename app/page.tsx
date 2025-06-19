@@ -5,6 +5,7 @@ import { VastisLogo } from "@/components/vastis-logo"
 import { MainNav } from "@/components/main-nav"
 import { ArrowRight, Calendar, MapPin, Shield, Users } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useAuth } from "@/contexts/auth-context"
 
 function CopyrightFooter() {
   const [year, setYear] = useState<number | null>(null)
@@ -14,49 +15,53 @@ function CopyrightFooter() {
 }
 
 export default function Home() {
+  const { user } = useAuth()
+
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <MainNav />
 
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative py-20 md:py-28 bg-gradient-to-b from-purple-50 to-white overflow-hidden">
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-pink-400 blur-3xl"></div>
-            <div className="absolute bottom-20 right-10 w-64 h-64 rounded-full bg-purple-400 blur-3xl"></div>
-          </div>
-          <div className="container relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-              <div>
-                <VastisLogo size="xl" variant="vibrant" className="mb-6" />
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-purple-600 to-pink-500">
-                  Connecting Patients with Physiotherapists in Available Gym Spaces
-                </h1>
-                <p className="text-lg text-gray-700 mb-8">
-                  Vastis makes it easy to find and book physiotherapy sessions at convenient locations near you.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Link href="/register">
-                    <Button size="lg" className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700">
-                      Get Started
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                  <Link href="/services">
-                    <Button size="lg" className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700">
-                      Our Services
-                    </Button>
-                  </Link>
+        {/* Hero Section - only show if not logged in */}
+        {!user && (
+          <section className="relative py-20 md:py-28 bg-gradient-to-b from-purple-50 to-white overflow-hidden">
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-pink-400 blur-3xl"></div>
+              <div className="absolute bottom-20 right-10 w-64 h-64 rounded-full bg-purple-400 blur-3xl"></div>
+            </div>
+            <div className="container relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                  <VastisLogo size="xl" variant="vibrant" className="mb-6" />
+                  <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-purple-600 to-pink-500">
+                    Connecting Patients with Physiotherapists in Available Gym Spaces
+                  </h1>
+                  <p className="text-lg text-gray-700 mb-8">
+                    Vastis makes it easy to find and book physiotherapy sessions at convenient locations near you.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Link href="/register">
+                      <Button size="lg" className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700">
+                        Get Started
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href="/services">
+                      <Button size="lg" className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700">
+                        Our Services
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              <div className="relative rounded-xl overflow-hidden shadow-2xl">
-                <div className="aspect-video bg-gradient-to-br from-purple-500 via-purple-600 to-pink-500 p-8 flex items-center justify-center">
-                  <VastisLogo asImage size="2xl" variant="white" showText={false} />
+                <div className="relative rounded-xl overflow-hidden shadow-2xl">
+                  <div className="aspect-video bg-gradient-to-br from-purple-500 via-purple-600 to-pink-500 p-8 flex items-center justify-center">
+                    <VastisLogo asImage size="2xl" variant="white" showText={false} />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Features Section */}
         <section className="py-20 bg-white">

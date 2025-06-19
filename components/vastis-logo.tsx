@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { cn } from "@/lib/utils"
 
 interface VastisLogoProps {
@@ -13,72 +14,23 @@ interface VastisLogoProps {
 export function VastisLogo({
   className,
   size = "md",
-  variant = "default",
+  variant = "vibrant",
   asImage = false,
   showText = true,
 }: VastisLogoProps) {
-  const sizeClasses = {
-    xs: "text-lg",
-    sm: "text-xl",
-    md: "text-2xl",
-    lg: "text-3xl",
-    xl: "text-4xl",
-    "2xl": "text-5xl",
-  }
-
-  const logoSizes = {
-    xs: "h-6",
-    sm: "h-8",
-    md: "h-10",
-    lg: "h-12",
-    xl: "h-16",
-    "2xl": "h-24",
-  }
-
-  const iconSizes = {
-    xs: "h-6 w-6",
-    sm: "h-8 w-8",
-    md: "h-10 w-10",
-    lg: "h-12 w-12",
-    xl: "h-16 w-16",
-    "2xl": "h-24 w-24",
-  }
-
-  const variantClasses = {
-    default: "text-primary",
-    light: "text-primary-200",
-    white: "text-white",
-    gradient: "text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400",
-    vibrant: "text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-orange-400",
-  }
-
-  const bgVariantClasses = {
-    default: "bg-gradient-to-br from-primary to-purple-500",
-    light: "bg-gradient-to-br from-primary-200 to-purple-300",
-    white: "bg-white",
-    gradient: "bg-gradient-to-br from-primary to-purple-500",
-    vibrant: "bg-gradient-to-br from-pink-500 via-purple-500 to-orange-400",
-  }
+  const sizeClass = size === "xl" ? "h-20 w-20 text-5xl" : size === "lg" ? "h-14 w-14 text-3xl" : size === "sm" ? "h-8 w-8 text-lg" : "h-10 w-10 text-xl"
+  const bgClass = variant === "vibrant" ? "bg-gradient-to-br from-pink-500 to-purple-600" : "bg-purple-600"
+  const textClass = variant === "vibrant" ? "text-white" : "text-white"
 
   if (asImage) {
     return (
       <div className={cn("relative flex items-center justify-center", className)}>
-        <div className={cn("rounded-xl flex items-center justify-center", iconSizes[size], bgVariantClasses[variant])}>
+        <div className={cn("rounded-xl flex items-center justify-center", sizeClass, bgClass)}>
           <span
-            className="font-bold text-white"
+            className={`font-bold ${textClass}`}
             style={{
-              fontSize:
-                size === "xs"
-                  ? "1rem"
-                  : size === "sm"
-                    ? "1.25rem"
-                    : size === "md"
-                      ? "1.5rem"
-                      : size === "lg"
-                        ? "1.75rem"
-                        : size === "xl"
-                          ? "2rem"
-                          : "3rem",
+              fontSize: "1.5em",
+              lineHeight: 1,
             }}
           >
             V
@@ -89,28 +41,15 @@ export function VastisLogo({
   }
 
   return (
-    <div className={cn("flex items-center", className)}>
-      <div
-        className={cn(
-          "rounded-xl flex items-center justify-center",
-          showText ? "mr-2" : "",
-          "h-8 w-8 sm:h-10 sm:w-10",
-          bgVariantClasses[variant],
-        )}
-      >
-        <span
-          className="font-bold text-white"
-          style={{
-            fontSize: "1.25rem",
-          }}
-        >
-          V
-        </span>
-      </div>
-
+    <span className={`inline-flex items-center justify-center rounded-[20%] font-bold ${sizeClass} ${bgClass} ${className}`}
+      style={{ minWidth: 40, minHeight: 40 }}
+    >
+      <span className={`font-bold ${textClass}`} style={{ fontSize: "1.5em", lineHeight: 1 }}>
+        V
+      </span>
       {showText && (
-        <span className={cn("font-bold tracking-tight", sizeClasses[size], variantClasses[variant])}>Vastis</span>
+        <span className="ml-2 text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600 hidden sm:inline">Vastis</span>
       )}
-    </div>
+    </span>
   )
 }

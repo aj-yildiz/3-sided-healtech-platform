@@ -30,7 +30,6 @@ export function MainNav() {
     { href: "/admin/appointments", label: "Appointments" },
     { href: "/admin/payments", label: "Payments" },
     { href: "/admin/reports", label: "Reports" },
-    { href: "/about", label: "About" },
   ]
 
   const doctorLinks = [
@@ -40,7 +39,6 @@ export function MainNav() {
     { href: "/doctor/services", label: "My Services" },
     { href: "/doctor/appointments", label: "Appointments" },
     { href: "/doctor/patients", label: "My Patients" },
-    { href: "/about", label: "About" },
   ]
 
   const gymLinks = [
@@ -49,7 +47,6 @@ export function MainNav() {
     { href: "/gym/doctors", label: "Healthcare Providers" },
     { href: "/gym/appointments", label: "Appointments" },
     { href: "/gym/analytics", label: "Analytics" },
-    { href: "/about", label: "About" },
   ]
 
   const patientLinks = [
@@ -57,7 +54,6 @@ export function MainNav() {
     { href: "/patient/find-provider", label: "Find Healthcare Provider" },
     { href: "/patient/appointments", label: "My Appointments" },
     { href: "/patient/medical-history", label: "Medical History" },
-    { href: "/about", label: "About" },
   ]
 
   const publicLinks = [
