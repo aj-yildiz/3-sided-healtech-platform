@@ -2,6 +2,7 @@
 
 import React from "react"
 import { cn } from "@/lib/utils"
+import Image from 'next/image';
 
 interface VastisLogoProps {
   className?: string
@@ -18,9 +19,16 @@ export function VastisLogo({
   asImage = false,
   showText = true,
 }: VastisLogoProps) {
-  const sizeClass = size === "xl" ? "h-20 w-20 text-5xl" : size === "lg" ? "h-14 w-14 text-3xl" : size === "sm" ? "h-8 w-8 text-lg" : "h-10 w-10 text-xl"
-  const bgClass = variant === "vibrant" ? "bg-gradient-to-br from-pink-500 to-purple-600" : "bg-purple-600"
-  const textClass = variant === "vibrant" ? "text-white" : "text-white"
+  // Size mapping for different contexts
+  const sizeMap = {
+    xs: 24,
+    sm: 32,
+    md: 48,
+    lg: 64,
+    xl: 96,
+    '2xl': 128,
+  };
+  const logoSize = sizeMap[size] || 48;
 
   if (asImage) {
     return (

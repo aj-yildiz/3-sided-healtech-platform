@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { MainNav } from "@/components/main-nav"
 import { CheckCircle, Users, Building, User } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 
 function CopyrightFooter() {
   const [year, setYear] = useState<number | null>(null)
@@ -13,6 +15,15 @@ function CopyrightFooter() {
 }
 
 export default function AboutPage() {
+  const { user, userRole } = useAuth();
+  const router = useRouter();
+  useEffect(() => {
+    if (user && userRole) {
+      router.replace(`/${userRole}/dashboard`);
+    }
+  }, [user, userRole, router]);
+  if (user && userRole) return null;
+
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <MainNav />

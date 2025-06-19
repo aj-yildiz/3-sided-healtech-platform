@@ -100,39 +100,21 @@ export function MainNav() {
         </div>
 
         <div className="flex items-center gap-4">
-          {!user ? (
+          {!user && (
             <>
+              <Link href="/about" className="text-[#33589B] font-medium">About</Link>
               <Link href="/login">
-                <Button variant="outline" size="sm">
-                  Log in
-                </Button>
+                <Button className="bg-[#33589B] text-white">Login</Button>
               </Link>
-              <Link href="/register" className="hidden sm:block">
-                <Button size="sm">Sign up</Button>
+              <Link href="/register">
+                <Button variant="outline" className="border-[#33589B] text-[#33589B]">Sign Up</Button>
               </Link>
             </>
-          ) : (
+          )}
+          {user && (
             <>
-              <span className="hidden md:inline-block text-sm text-muted-foreground">
-                {userProfile?.name || user.email}
-              </span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href={`/${userRole}/profile`}>Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={`/${userRole}/settings`}>Settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => signOut()}>Log out</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Link href={`/${userRole}/profile`} className="text-[#33589B] font-medium">Profile</Link>
+              <Button onClick={signOut} className="bg-[#33589B] text-white">Logout</Button>
             </>
           )}
 
