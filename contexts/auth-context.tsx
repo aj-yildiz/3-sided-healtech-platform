@@ -146,22 +146,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('[AuthProvider] onAuthStateChange event:', _event, session);
       setSession(session);
       setUser(session?.user ?? null);
+      
       if (session?.user) {
         console.log('[AuthProvider] typeof window (onAuthStateChange):', typeof window);
         console.log('[AuthProvider] before fetch user_roles (onAuthStateChange)');
         
         try {
-          const { data: roleData, error: roleError } = await supabase
+          // Add a timeout to prevent hanging
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Query timeout')), 10000)
+          );
+          
+          const queryPromise = supabase
             .from("user_roles")
             .select("role")
             .eq("user_id", session.user.id)
-            .single();
+            .maybeSingle();
+          
+          const { data: roleData, error: roleError } = await Promise.race([
+            queryPromise,
+            timeoutPromise
+          ]) as any;
             
           console.log('[AuthProvider] after fetch user_roles (onAuthStateChange)', roleData, roleError);
           
           if (roleError) {
             console.error('[AuthProvider] user_roles error:', roleError);
-            // If no role found, set to null and continue
+            
+            // Check if it's a table not found error
+            if (roleError.code === 'PGRST106' || roleError.message?.includes('relation "user_roles" does not exist')) {
+              console.warn('[AuthProvider] user_roles table does not exist - user needs to run database setup');
+              setUserRole(null);
+              setUserProfile(null);
+              setLoading(false);
+              return;
+            }
+            
+            // If no role found (404), continue without role
+            if (roleError.code === 'PGRST116') {
+              console.warn('[AuthProvider] No role found for user - they need to be assigned a role');
+              setUserRole(null);
+              setUserProfile(null);
+              setLoading(false);
+              return;
+            }
+            
+            // For other errors, continue without role
             setUserRole(null);
             setUserProfile(null);
             setLoading(false);
@@ -170,22 +200,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           const role = (roleData?.role as UserRole) || null;
           setUserRole(role);
-          console.log('[AuthProvider] userRole:', role);
+          console.log('[AuthProvider] userRole resolved:', role);
           
           if (role) {
             let profileData = null;
-            if (role === "patient") {
-              console.log('[AuthProvider] before fetch patients (onAuthStateChange)');
-              const { data, error } = await supabase
-                .from("patients")
-                .select("id, name, email")
-                .eq("user_id", session.user.id)
-                .single();
-              console.log('[AuthProvider] after fetch patients (onAuthStateChange)', data, error);
-              if (error) {
-                console.error('[AuthProvider] patients error:', error);
-                // Create patient record if it doesn't exist
-                if (error.code === 'PGRST116') {
+            
+            try {
+              if (role === "patient") {
+                console.log('[AuthProvider] before fetch patients (onAuthStateChange)');
+                const { data, error } = await supabase
+                  .from("patients")
+                  .select("id, name, email")
+                  .eq("user_id", session.user.id)
+                  .maybeSingle();
+                console.log('[AuthProvider] after fetch patients (onAuthStateChange)', data, error);
+                
+                if (error && error.code !== 'PGRST116') {
+                  console.error('[AuthProvider] patients error:', error);
+                } else if (!data && !error) {
+                  // Create patient record if it doesn't exist
+                  console.log('[AuthProvider] Creating new patient record');
                   const { data: newPatient } = await supabase
                     .from("patients")
                     .insert({
@@ -194,23 +228,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                       email: session.user.email || ''
                     })
                     .select("id, name, email")
-                    .single();
+                    .maybeSingle();
                   profileData = newPatient;
+                } else {
+                  profileData = data;
                 }
-              } else {
-                profileData = data;
-              }
-            } else if (role === "doctor") {
-              console.log('[AuthProvider] before fetch doctors (onAuthStateChange)');
-              const { data, error } = await supabase
-                .from("doctors")
-                .select("id, name, email")
-                .eq("user_id", session.user.id)
-                .single();
-              console.log('[AuthProvider] after fetch doctors (onAuthStateChange)', data, error);
-              if (error) {
-                console.error('[AuthProvider] doctors error:', error);
-                if (error.code === 'PGRST116') {
+              } else if (role === "doctor") {
+                console.log('[AuthProvider] before fetch doctors (onAuthStateChange)');
+                const { data, error } = await supabase
+                  .from("doctors")
+                  .select("id, name, email")
+                  .eq("user_id", session.user.id)
+                  .maybeSingle();
+                console.log('[AuthProvider] after fetch doctors (onAuthStateChange)', data, error);
+                
+                if (error && error.code !== 'PGRST116') {
+                  console.error('[AuthProvider] doctors error:', error);
+                } else if (!data && !error) {
+                  console.log('[AuthProvider] Creating new doctor record');
                   const { data: newDoctor } = await supabase
                     .from("doctors")
                     .insert({
@@ -220,23 +255,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                       specialization: ''
                     })
                     .select("id, name, email")
-                    .single();
+                    .maybeSingle();
                   profileData = newDoctor;
+                } else {
+                  profileData = data;
                 }
-              } else {
-                profileData = data;
-              }
-            } else if (role === "gym") {
-              console.log('[AuthProvider] before fetch gyms (onAuthStateChange)');
-              const { data, error } = await supabase
-                .from("gyms")
-                .select("id, name, email")
-                .eq("user_id", session.user.id)
-                .single();
-              console.log('[AuthProvider] after fetch gyms (onAuthStateChange)', data, error);
-              if (error) {
-                console.error('[AuthProvider] gyms error:', error);
-                if (error.code === 'PGRST116') {
+              } else if (role === "gym") {
+                console.log('[AuthProvider] before fetch gyms (onAuthStateChange)');
+                const { data, error } = await supabase
+                  .from("gyms")
+                  .select("id, name, email")
+                  .eq("user_id", session.user.id)
+                  .maybeSingle();
+                console.log('[AuthProvider] after fetch gyms (onAuthStateChange)', data, error);
+                
+                if (error && error.code !== 'PGRST116') {
+                  console.error('[AuthProvider] gyms error:', error);
+                } else if (!data && !error) {
+                  console.log('[AuthProvider] Creating new gym record');
                   const { data: newGym } = await supabase
                     .from("gyms")
                     .insert({
@@ -246,23 +282,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                       address: ''
                     })
                     .select("id, name, email")
-                    .single();
+                    .maybeSingle();
                   profileData = newGym;
+                } else {
+                  profileData = data;
                 }
-              } else {
-                profileData = data;
+              } else if (role === "admin") {
+                console.log('[AuthProvider] before fetch admin (onAuthStateChange)');
+                const { data, error } = await supabase
+                  .from("admins")
+                  .select("id, name, email")
+                  .eq("user_id", session.user.id)
+                  .maybeSingle();
+                console.log('[AuthProvider] after fetch admin (onAuthStateChange)', data, error);
+                if (error && error.code !== 'PGRST116') {
+                  console.error('[AuthProvider] admin error:', error);
+                } else {
+                  profileData = data;
+                }
               }
-            } else if (role === "admin") {
-              console.log('[AuthProvider] before fetch admin (onAuthStateChange)');
-              const { data, error } = await supabase
-                .from("admin")
-                .select("id, name, email")
-                .eq("user_id", session.user.id)
-                .single();
-              console.log('[AuthProvider] after fetch admin (onAuthStateChange)', data, error);
-              if (error) console.error('[AuthProvider] admin error:', error);
-              profileData = data;
+            } catch (profileError) {
+              console.error('[AuthProvider] Error fetching profile:', profileError);
+              profileData = null;
             }
+            
             setUserProfile(profileData);
             console.log('[AuthProvider] userProfile:', profileData);
           } else {
@@ -270,6 +313,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (error) {
           console.error('[AuthProvider] Error in auth state change:', error);
+          if (error.message === 'Query timeout') {
+            console.error('[AuthProvider] Database query timed out - check database setup');
+          }
           setUserRole(null);
           setUserProfile(null);
         }
@@ -277,6 +323,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserRole(null);
         setUserProfile(null);
       }
+      
       setLoading(false);
       console.log('[AuthProvider] setLoading(false) from onAuthStateChange');
       router.refresh();
