@@ -401,14 +401,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch (e) {
+      // ignore
+    }
     setUser(null)
     setSession(null)
     setUserRole(null)
     setUserProfile(null)
     setLoading(false)
-    // Force a hard reload to clear any cached state
-    window.location.href = "/"
+    if (typeof window !== 'undefined') {
+      if (window?.toast) window.toast.success('Logged out successfully!')
+      setTimeout(() => { window.location.href = "/" }, 300)
+    }
   }
 
   const checkAccess = (allowedRoles: UserRole[]) => {

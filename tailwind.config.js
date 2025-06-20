@@ -20,19 +20,18 @@ const config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#7B68EE", // New purple color similar to the image
-          foreground: "hsl(var(--primary-foreground))",
-          50: "#f3f1fe",
-          100: "#e9e4fd",
-          200: "#d5ccfb",
-          300: "#b7a7f8",
-          400: "#9a85f4",
-          500: "#7B68EE", // Main brand color
-          600: "#6a4be6",
-          700: "#5a3ad3",
-          800: "#4b31ac",
-          900: "#3e2b8c",
-          950: "#251a54",
+          DEFAULT: "#33589B", // Vastis brand blue
+          foreground: "#fff",
+          50: "#f3f6fa",
+          100: "#e6eef6",
+          200: "#c2d4ea",
+          300: "#9db9de",
+          400: "#6b8fc9",
+          500: "#33589B", // Main brand color
+          600: "#29477c",
+          700: "#20375e",
+          800: "#182841",
+          900: "#101a26",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",

@@ -102,19 +102,19 @@ export function MainNav() {
         <div className="flex items-center gap-4">
           {!user && (
             <>
-              <Link href="/about" className="text-[#33589B] font-medium">About</Link>
+              <Link href="/about" className="text-primary font-medium">About</Link>
               <Link href="/login">
-                <Button className="bg-[#33589B] text-white">Login</Button>
+                <Button className="bg-primary text-primary-foreground">Login</Button>
               </Link>
               <Link href="/register">
-                <Button variant="outline" className="border-[#33589B] text-[#33589B]">Sign Up</Button>
+                <Button variant="outline" className="border-primary text-primary">Sign Up</Button>
               </Link>
             </>
           )}
           {user && (
             <>
-              <Link href={`/${userRole}/profile`} className="text-[#33589B] font-medium">Profile</Link>
-              <Button onClick={signOut} className="bg-[#33589B] text-white">Logout</Button>
+              <Link href={`/${userRole}/profile`} className="text-primary font-medium">Profile</Link>
+              <Button onClick={async () => { await signOut(); if (window?.toast) window.toast.success('Logged out successfully!'); }} className="bg-primary text-primary-foreground">Logout</Button>
             </>
           )}
 
