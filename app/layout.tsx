@@ -1,19 +1,13 @@
-import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "../styles/globals.css"
-import { AuthProvider } from "@/contexts/auth-context"
-import { ThemeProvider } from "@/components/theme-provider"
-import { ClientLayoutWrapper } from "@/components/client-layout-wrapper"
-import { Toaster } from "@/components/ui/toaster"
+import DebugClientWrapper from '@/components/DebugClientWrapper'
 
-console.log('App mounted');
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Vastis - Physiotherapy Booking Platform",
-  description: "Book physiotherapy appointments at nearby gyms",
-    generator: 'v0.dev'
+  title: "Vastis - Healthcare Platform",
+  description: "Connect with healthcare providers at nearby gyms",
 }
 
 export default function RootLayout({
@@ -22,14 +16,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <AuthProvider>
-            <ClientLayoutWrapper>{children}</ClientLayoutWrapper>
-            <Toaster />
-          </AuthProvider>
-        </ThemeProvider>
+        <DebugClientWrapper>{children}</DebugClientWrapper>
       </body>
     </html>
   )

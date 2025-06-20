@@ -1,335 +1,341 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
+import { createClientComponentClient } from "@/lib/supabase"
 import { MainNav } from "@/components/main-nav"
-import { RouteGuard } from "@/components/route-guard"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { FileUpload } from "@/components/file-upload"
-import { getPatientProfile, updatePatientProfile, uploadPatientProfileImage } from "@/app/actions/patient-actions"
+import { Textarea } from "@/components/ui/textarea"
 
 interface PatientProfile {
   id: number
-  user_id: string
   name: string
   email: string
-  phone: string
-  address: string
-  date_of_birth: string
-  gender: string
-  blood_type: string
-  emergency_contact_name: string
-  emergency_contact_phone: string
-  allergies: string
-  medical_conditions: string
-  medications: string
-  profile_image: string | null
+  phone?: string
+  date_of_birth?: string
+  gender?: string
+  address?: string
+  emergency_contact_name?: string
+  emergency_contact_phone?: string
+  emergency_contact_relation?: string
+  insurance_provider?: string
+  insurance_policy_number?: string
+  medical_conditions?: string
+  allergies?: string
+  current_medications?: string
 }
 
 export default function PatientProfile() {
-  const { user, userProfile } = useAuth()
+  const { user } = useAuth()
+  const supabase = createClientComponentClient()
   const [profile, setProfile] = useState<PatientProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!user || !userProfile) return
-
+      if (!user) return
+      
       try {
-        const data = await getPatientProfile(user.id)
+        const { data, error } = await supabase
+          .from("patients")
+          .select("*")
+          .eq("user_id", user.id)
+          .single()
+        
+        if (error) throw error
         setProfile(data)
-      } catch (error) {
-        console.error("Error fetching profile:", error)
-        setError("Failed to load profile data")
+      } catch (err: any) {
+        console.error("Error fetching profile:", err)
+        setError(err.message || "Failed to load profile")
       } finally {
         setLoading(false)
       }
     }
 
     fetchProfile()
-  }, [user, userProfile])
+  }, [user, supabase])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setProfile((prev) => (prev ? { ...prev, [name]: value } : null))
-  }
-
-  const handleSelectChange = (name: string, value: string) => {
-    setProfile((prev) => (prev ? { ...prev, [name]: value } : null))
-  }
-
-  const handleSave = async () => {
-    if (!profile || !userProfile) return
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!profile || !user) return
 
     setSaving(true)
     setError(null)
     setSuccess(null)
 
     try {
-      await updatePatientProfile(userProfile.id, {
-        name: profile.name,
-        phone: profile.phone,
-        address: profile.address,
-        emergency_contact_name: profile.emergency_contact_name,
-        emergency_contact_phone: profile.emergency_contact_phone,
-        allergies: profile.allergies,
-        medical_conditions: profile.medical_conditions,
-        medications: profile.medications,
-      })
+      const { error } = await supabase
+        .from("patients")
+        .update({
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          date_of_birth: profile.date_of_birth,
+          gender: profile.gender,
+          address: profile.address,
+          emergency_contact_name: profile.emergency_contact_name,
+          emergency_contact_phone: profile.emergency_contact_phone,
+          emergency_contact_relation: profile.emergency_contact_relation,
+          insurance_provider: profile.insurance_provider,
+          insurance_policy_number: profile.insurance_policy_number,
+          medical_conditions: profile.medical_conditions,
+          allergies: profile.allergies,
+          current_medications: profile.current_medications,
+        })
+        .eq("user_id", user.id)
 
-      setSuccess("Profile updated successfully")
-    } catch (error: any) {
-      console.error("Error updating profile:", error)
-      setError(error.message || "Failed to update profile")
+      if (error) throw error
+      setSuccess("Profile updated successfully!")
+    } catch (err: any) {
+      console.error("Error updating profile:", err)
+      setError(err.message || "Failed to update profile")
     } finally {
       setSaving(false)
     }
   }
 
-  const handleImageUpload = async (file: File) => {
-    if (!userProfile) return
-
-    setUploadingImage(true)
-    setError(null)
-
-    try {
-      const result = await uploadPatientProfileImage(userProfile.id, file)
-      setProfile((prev) => (prev ? { ...prev, profile_image: result.imageUrl } : null))
-      setSuccess("Profile image updated successfully")
-    } catch (error: any) {
-      console.error("Error uploading image:", error)
-      setError(error.message || "Failed to upload image")
-    } finally {
-      setUploadingImage(false)
-    }
+  const handleInputChange = (field: keyof PatientProfile, value: string) => {
+    if (!profile) return
+    setProfile({ ...profile, [field]: value })
   }
 
   if (loading) {
     return (
-      <RouteGuard allowedRoles={["patient"]}>
-        <div className="flex min-h-screen flex-col">
-          <MainNav />
-          <main className="flex-1 p-6">
-            <div className="container max-w-3xl">
-              <div className="text-center py-10">Loading profile...</div>
+      <div className="flex min-h-screen flex-col">
+        <MainNav />
+        <main className="flex-1 p-6">
+          <div className="container">
+            <div className="text-center py-10">Loading profile...</div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <MainNav />
+        <main className="flex-1 p-6">
+          <div className="container">
+            <div className="text-center py-10">
+              <p className="text-red-500">Failed to load profile</p>
             </div>
-          </main>
-        </div>
-      </RouteGuard>
+          </div>
+        </main>
+      </div>
     )
   }
 
   return (
-    <RouteGuard allowedRoles={["patient"]}>
-      <div className="flex min-h-screen flex-col">
-        <MainNav />
-        <main className="flex-1 p-6">
-          <div className="container max-w-3xl">
-            <h1 className="text-3xl font-bold mb-6">My Profile</h1>
+    <div className="flex min-h-screen flex-col">
+      <MainNav />
+      <main className="flex-1 p-6">
+        <div className="container max-w-2xl">
+          <h1 className="text-3xl font-bold mb-6">My Profile</h1>
 
-            <div className="mb-8 flex flex-col sm:flex-row items-center gap-6">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={profile?.profile_image || ""} alt={profile?.name || "Profile"} />
-                <AvatarFallback>{profile?.name?.substring(0, 2).toUpperCase() || "PT"}</AvatarFallback>
-              </Avatar>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-semibold">{profile?.name}</h2>
-                <p className="text-muted-foreground">{profile?.email}</p>
-                <FileUpload
-                  onUpload={handleImageUpload}
-                  accept="image/*"
-                  buttonText={uploadingImage ? "Uploading..." : "Change Photo"}
-                  disabled={uploadingImage}
-                />
-              </div>
-            </div>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+          {success && (
+            <Alert className="mb-4">
+              <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
 
-            {success && (
-              <Alert className="mb-4">
-                <AlertDescription>{success}</AlertDescription>
-              </Alert>
-            )}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Personal Information</CardTitle>
+                <CardDescription>Update your basic information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      value={profile.name || ""}
+                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profile.email || ""}
+                      onChange={(e) => handleInputChange("email", e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
 
-            <Tabs defaultValue="personal" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="personal">Personal Information</TabsTrigger>
-                <TabsTrigger value="medical">Medical Information</TabsTrigger>
-                <TabsTrigger value="emergency">Emergency Contact</TabsTrigger>
-              </TabsList>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profile.phone || ""}
+                      onChange={(e) => handleInputChange("phone", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="date_of_birth">Date of Birth</Label>
+                    <Input
+                      id="date_of_birth"
+                      type="date"
+                      value={profile.date_of_birth || ""}
+                      onChange={(e) => handleInputChange("date_of_birth", e.target.value)}
+                    />
+                  </div>
+                </div>
 
-              <TabsContent value="personal">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Personal Information</CardTitle>
-                    <CardDescription>Update your personal details</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input id="name" name="name" value={profile?.name || ""} onChange={handleChange} />
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="gender">Gender</Label>
+                    <Input
+                      id="gender"
+                      type="text"
+                      value={profile.gender || ""}
+                      onChange={(e) => handleInputChange("gender", e.target.value)}
+                    />
+                  </div>
+                </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" name="email" value={profile?.email || ""} disabled />
-                      <p className="text-sm text-muted-foreground">Email cannot be changed</p>
-                    </div>
+                <div>
+                  <Label htmlFor="address">Address</Label>
+                  <Textarea
+                    id="address"
+                    value={profile.address || ""}
+                    onChange={(e) => handleInputChange("address", e.target.value)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" name="phone" value={profile?.phone || ""} onChange={handleChange} />
-                    </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Emergency Contact</CardTitle>
+                <CardDescription>Emergency contact information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="emergency_contact_name">Contact Name</Label>
+                    <Input
+                      id="emergency_contact_name"
+                      type="text"
+                      value={profile.emergency_contact_name || ""}
+                      onChange={(e) => handleInputChange("emergency_contact_name", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="emergency_contact_phone">Contact Phone</Label>
+                    <Input
+                      id="emergency_contact_phone"
+                      type="tel"
+                      value={profile.emergency_contact_phone || ""}
+                      onChange={(e) => handleInputChange("emergency_contact_phone", e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="emergency_contact_relation">Relationship</Label>
+                  <Input
+                    id="emergency_contact_relation"
+                    type="text"
+                    value={profile.emergency_contact_relation || ""}
+                    onChange={(e) => handleInputChange("emergency_contact_relation", e.target.value)}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Address</Label>
-                      <Textarea
-                        id="address"
-                        name="address"
-                        value={profile?.address || ""}
-                        onChange={handleChange}
-                        rows={3}
-                      />
-                    </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Insurance Information</CardTitle>
+                <CardDescription>Your insurance details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="insurance_provider">Insurance Provider</Label>
+                    <Input
+                      id="insurance_provider"
+                      type="text"
+                      value={profile.insurance_provider || ""}
+                      onChange={(e) => handleInputChange("insurance_provider", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="insurance_policy_number">Policy Number</Label>
+                    <Input
+                      id="insurance_policy_number"
+                      type="text"
+                      value={profile.insurance_policy_number || ""}
+                      onChange={(e) => handleInputChange("insurance_policy_number", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="date_of_birth">Date of Birth</Label>
-                        <Input
-                          id="date_of_birth"
-                          name="date_of_birth"
-                          type="date"
-                          value={profile?.date_of_birth ? profile.date_of_birth.substring(0, 10) : ""}
-                          disabled
-                        />
-                      </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Medical Information</CardTitle>
+                <CardDescription>Your medical history and current medications</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="medical_conditions">Medical Conditions</Label>
+                  <Textarea
+                    id="medical_conditions"
+                    value={profile.medical_conditions || ""}
+                    onChange={(e) => handleInputChange("medical_conditions", e.target.value)}
+                    placeholder="List any medical conditions..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="allergies">Allergies</Label>
+                  <Textarea
+                    id="allergies"
+                    value={profile.allergies || ""}
+                    onChange={(e) => handleInputChange("allergies", e.target.value)}
+                    placeholder="List any allergies..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="current_medications">Current Medications</Label>
+                  <Textarea
+                    id="current_medications"
+                    value={profile.current_medications || ""}
+                    onChange={(e) => handleInputChange("current_medications", e.target.value)}
+                    placeholder="List current medications..."
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="gender">Gender</Label>
-                        <Input id="gender" name="gender" value={profile?.gender || ""} disabled />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="blood_type">Blood Type</Label>
-                      <Input id="blood_type" name="blood_type" value={profile?.blood_type || ""} disabled />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button onClick={handleSave} disabled={saving}>
-                      {saving ? "Saving..." : "Save Changes"}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="medical">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Medical Information</CardTitle>
-                    <CardDescription>Update your medical details</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="allergies">Allergies</Label>
-                      <Textarea
-                        id="allergies"
-                        name="allergies"
-                        rows={3}
-                        value={profile?.allergies || ""}
-                        onChange={handleChange}
-                        placeholder="List any allergies you have"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="medical_conditions">Medical Conditions</Label>
-                      <Textarea
-                        id="medical_conditions"
-                        name="medical_conditions"
-                        rows={3}
-                        value={profile?.medical_conditions || ""}
-                        onChange={handleChange}
-                        placeholder="List any medical conditions you have"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="medications">Current Medications</Label>
-                      <Textarea
-                        id="medications"
-                        name="medications"
-                        rows={3}
-                        value={profile?.medications || ""}
-                        onChange={handleChange}
-                        placeholder="List any medications you are currently taking"
-                      />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button onClick={handleSave} disabled={saving}>
-                      {saving ? "Saving..." : "Save Changes"}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="emergency">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Emergency Contact</CardTitle>
-                    <CardDescription>Update your emergency contact information</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="emergency_contact_name">Emergency Contact Name</Label>
-                      <Input
-                        id="emergency_contact_name"
-                        name="emergency_contact_name"
-                        value={profile?.emergency_contact_name || ""}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="emergency_contact_phone">Emergency Contact Phone</Label>
-                      <Input
-                        id="emergency_contact_phone"
-                        name="emergency_contact_phone"
-                        value={profile?.emergency_contact_phone || ""}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button onClick={handleSave} disabled={saving}>
-                      {saving ? "Saving..." : "Save Changes"}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </main>
-      </div>
-    </RouteGuard>
+            <Button type="submit" disabled={saving} className="w-full">
+              {saving ? "Saving..." : "Save Profile"}
+            </Button>
+          </form>
+        </div>
+      </main>
+    </div>
   )
 }

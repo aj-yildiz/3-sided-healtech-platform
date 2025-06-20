@@ -20,7 +20,6 @@ interface Appointment {
   appointment_date: string
   start_time: string
   end_time: string
-  appointment_type: string
   service_name: string
   appointment_status: string
 }
@@ -56,8 +55,7 @@ export default function PatientDashboard() {
             appointment_date,
             start_time,
             end_time,
-            appointment_type,
-            appointment_status,
+            status,
             doctors:doctor_id(name, specialization),
             gyms:gym_id(name, address),
             service_types:service_type_id(name)
@@ -80,9 +78,8 @@ export default function PatientDashboard() {
           appointment_date: item.appointment_date,
           start_time: item.start_time,
           end_time: item.end_time,
-          appointment_type: item.appointment_type,
-          service_name: item.service_types?.name || item.appointment_type,
-          appointment_status: item.appointment_status,
+          service_name: item.service_types?.name || "General Consultation",
+          appointment_status: item.status || "scheduled",
         }))
         setAppointments(formattedAppointments)
         setLoading(false)
