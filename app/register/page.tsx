@@ -156,106 +156,28 @@ export default function Register() {
 
       if (signUpError) {
         console.error("Sign up error details:", signUpError)
-
-        // Check for rate limiting error
         if (signUpError.message?.includes("security purposes") || signUpError.message?.includes("rate limit")) {
           throw new Error("Rate limit reached. Please wait at least 32 seconds before trying again.")
+        }
+        if (signUpError.message?.toLowerCase().includes("already registered") || signUpError.message?.toLowerCase().includes("already exists")) {
+          toast({
+            title: "Email already registered",
+            description: "This email is already registered. Please check your email for a confirmation link or try logging in.",
+            variant: "destructive",
+          })
+          setLoading(false)
+          return
         }
         throw new Error(signUpError.message || "Failed to create user")
       }
 
-      if (!data?.user) {
-        console.error("No user returned from signUp. User must confirm their email before logging in.")
-        toast({
-          title: "Check your email",
-          description: "Registration successful! Please check your email and confirm your registration before logging in.",
-        })
-        setLoading(false)
-        return
-      }
-
-      const userId = data.user.id
-      console.log("User created successfully with ID:", userId)
-      console.log("About to insert into user_roles with userId:", userId, "and role:", role)
-
-      // Step 2: Create user role
-      setLoadingMessage("Setting up your profile...")
-      setRegistrationStep(2)
-
-      console.log("Inserting into user_roles...")
-      const { error: roleError } = await supabase.from("user_roles").insert({
-        user_id: userId,
-        role,
-      })
-
-      if (roleError) {
-        console.error("Role creation error:", roleError)
-        throw new Error(
-          roleError.message ||
-          JSON.stringify(roleError) ||
-          "Unknown error occurred while creating user role"
-        )
-      }
-
-      // Step 3: Create profile based on role
-      setLoadingMessage("Finalizing your account...")
-      setRegistrationStep(3)
-
-      if (role === "patient") {
-        const { error } = await supabase.from("patients").insert({
-          user_id: userId,
-          name: `${firstName} ${lastName}`,
-          email: email.trim().toLowerCase(),
-          address,
-          date_of_birth: dateOfBirth,
-          gender,
-        })
-        if (error) {
-          console.error("Patient profile creation error:", error)
-          throw new Error(error.message)
-        }
-      } else if (role === "doctor") {
-        const { error } = await supabase.from("doctors").insert({
-          user_id: userId,
-          name: `${firstName} ${lastName}`,
-          email: email.trim().toLowerCase(),
-          specialization,
-          license_number: licenseNumber,
-          address: address || "", // Use address if provided, otherwise empty string
-        })
-        if (error) {
-          console.error("Doctor profile creation error:", error)
-          throw new Error(error.message)
-        }
-      } else if (role === "gym") {
-        const { error } = await supabase.from("gyms").insert({
-          user_id: userId,
-          name: gymName,
-          email: email.trim().toLowerCase(),
-          address: gymAddress,
-        })
-        if (error) {
-          console.error("Gym profile creation error:", error)
-          throw new Error(error.message)
-        }
-      }
-
-      // Step 4: Update invitation status if applicable
-      if (inviteCode) {
-        await supabase
-          .from("invitations")
-          .update({ status: "accepted" })
-          .eq("invite_code", inviteCode)
-          .eq("email", email.trim().toLowerCase())
-      }
-
-      // Success! Redirect to login page with success message
+      // Always show check email message and return
       toast({
-        title: "Success",
-        description: "Your account has been created successfully!",
+        title: "Check your email",
+        description: "Registration successful! Please check your email and confirm your registration before logging in.",
       })
-
-      router.push("/login?registered=true")
+      setLoading(false)
+      return
     } catch (error: any) {
       console.error("Registration error:", error)
       setError(error.message || "Failed to register")
